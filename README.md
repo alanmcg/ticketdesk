@@ -1,7 +1,6 @@
 # Ticket Desk
 
-A fast, native GNOME client for Jira Cloud, built with GTK 4 and libadwaita. Companion
-to the *Ticket Panel for Jira* top bar extension.
+A fast, native GNOME client for Jira Cloud, VIBE CODED with Claude, for GTK 4 and libadwaita.
 
 Not affiliated with or endorsed by Atlassian. Jira is a trademark of Atlassian.
 
