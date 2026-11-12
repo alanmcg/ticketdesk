@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.ruff_cache/
+build/
+node_modules/
+# web-ext sign: signed builds, upload id, and any config holding AMO API keys
+browser/firefox/web-ext-artifacts/
+browser/firefox/.amo-upload-uuid
+.amo-upload-uuid
+web-ext-config.*
+.web-extension-id
