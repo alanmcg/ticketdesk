@@ -1,0 +1,15 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: ticketdesk
+Source: https://github.com/USER/ticketdesk
+
+Files: *
+Copyright: 2026 Ticket Desk contributors
+License: GPL-2.0-or-later
+ On Debian systems, the full text of the GNU General Public License
+ version 2 can be found in the file /usr/share/common-licenses/GPL-2.
+
+Files: data/ticketdesk.metainfo.xml.in
+Copyright: 2026 Ticket Desk contributors
+License: CC0-1.0
+ On Debian systems, the full text of the CC0 1.0 Universal license can be
+ found in the file /usr/share/common-licenses/CC0-1.0.

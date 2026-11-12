@@ -1,0 +1,7 @@
+{
+  "name": "ticketdesk",
+  "description": "Opens Jira tickets in Ticket Desk",
+  "path": "@HOST_PATH@",
+  "type": "stdio",
+  "allowed_extensions": ["@ticketdesk-links"]
+}

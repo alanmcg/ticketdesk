@@ -1,0 +1,36 @@
+{
+  "site": "acme.example.net",
+  "tickets": [
+    ["https://acme.example.net/browse/OPS-12", "OPS-12"],
+    ["https://acme.example.net/browse/OPS-12/", "OPS-12"],
+    ["https://acme.example.net/browse/OPS-12?focusedCommentId=1001#comment-1001", "OPS-12"],
+    ["http://acme.example.net/browse/OPS-12", "OPS-12"],
+    ["https://ACME.example.net/browse/OPS-12", "OPS-12"],
+    ["https://acme.example.net/browse/A2_B-7", "A2_B-7"],
+    ["https://acme.example.net/jira/software/projects/OPS/issues/OPS-12", "OPS-12"],
+    ["https://acme.example.net/jira/core/projects/OPS/issues/OPS-12/", "OPS-12"],
+    ["https://acme.example.net/jira/servicedesk/projects/HELP/queues/custom/7/OPS-12", "OPS-12"],
+    ["https://acme.example.net/jira/software/projects/OPS/boards/3?selectedIssue=OPS-12", "OPS-12"],
+    ["https://acme.example.net/issues/?jql=project%3DOPS&selectedIssue=ops-12", "OPS-12"],
+    ["https://eur02.safelinks.protection.outlook.com/?url=https%3A%2F%2Facme.example.net%2Fbrowse%2FOPS-12&data=05%7C02&reserved=0", "OPS-12"],
+    ["https://statics.teams.cdn.office.net/evergreen-assets/safelinks/2/atp-safelinks.html?url=https%3A%2F%2Facme.example.net%2Fbrowse%2FOPS-12&locale=en-gb", "OPS-12"]
+  ],
+  "not_tickets": [
+    "https://acme.example.net/jira/software/projects/OPS/boards/3",
+    "https://acme.example.net/issues/?jql=project%3DOPS",
+    "https://acme.example.net/wiki/spaces/OPS/pages/123/OPS-12",
+    "https://acme.example.net/browse/OPS",
+    "https://acme.example.net/browse/ops-12",
+    "https://acme.example.net/secure/attachment/1/OPS-12.png",
+    "https://other.example.net/browse/OPS-12",
+    "https://acme.example.net.evil.example/browse/OPS-12",
+    "https://evil.example/?url=https%3A%2F%2Facme.example.net%2Fbrowse%2FOPS-12",
+    "https://eur02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fother.example.net%2Fbrowse%2FOPS-12",
+    "https://eur02.safelinks.protection.outlook.com/?url=javascript%3Aalert(1)",
+    "ftp://acme.example.net/browse/OPS-12",
+    "mailto:someone@acme.example.net",
+    "https://acme.example.net/browse/OPS-12?ticketdesk=web",
+    "https://[::1/browse/OPS-12",
+    ""
+  ]
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; font: message-box; }
+  body { margin: 12px 4px; max-width: 34em; }
+  label { display: block; margin: 12px 0 4px; }
+  input[type=text] { width: 100%; box-sizing: border-box; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+  .row label { margin: 0; }
+  .dim { opacity: .7; font-size: .92em; }
+  #status { margin: 0 0 4px; }
+</style>
+</head>
+<body>
+  <p id="status">Checking for Ticket Desk…</p>
+  <p class="dim" id="detail"></p>
+  <button id="check">Check Again</button>
+
+  <label for="site">Jira site</label>
+  <input type="text" id="site" placeholder="Taken from Ticket Desk" spellcheck="false">
+  <p class="dim">Leave empty to use the site set in Ticket Desk.</p>
+
+  <div class="row">
+    <input type="checkbox" id="onSite">
+    <label for="onSite">Also for ticket links on the Jira site itself</label>
+  </div>
+  <script src="links.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

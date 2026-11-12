@@ -1,0 +1,74 @@
+ticketdesk (0.10.0) unstable; urgency=medium
+
+  * Change the assignee from the ticket view.
+  * Link tickets (relates, blocks, duplicates, parent/child) and remove links.
+  * install.sh: per-user installer.
+
+ -- Your Name <you@example.com>  Thu, 12 Nov 2026 23:30:00 +0100
+
+ticketdesk (0.9.0) unstable; urgency=medium
+
+  * Firefox extension (browser/firefox) and its native messaging helper:
+    Jira ticket links clicked in Firefox and Firefox web apps open in Ticket Desk.
+
+ -- Your Name <you@example.com>  Thu, 12 Nov 2026 23:30:00 +0100
+
+ticketdesk (0.8.0) unstable; urgency=medium
+
+  * Notifications: bell with history, optional desktop notifications,
+    configurable check frequency.
+  * Live view: the list refreshes itself when sorted by updated, newest first.
+
+ -- Your Name <you@example.com>  Thu, 12 Nov 2026 23:00:00 +0100
+
+ticketdesk (0.7.0) unstable; urgency=medium
+
+  * @mentions in descriptions and comments.
+  * Pasting images and dropping files from the file manager work in WebKitGTK.
+  * Editor toolbars wrap, so the new ticket dialog fits small windows.
+
+ -- Your Name <you@example.com>  Thu, 12 Nov 2026 21:00:00 +0100
+
+ticketdesk (0.6.0) unstable; urgency=medium
+
+  * Images in descriptions and comments: paste, drop or insert, resizable.
+  * Attach files to new tickets, with comments, and to existing tickets.
+  * Rich text comments.
+
+ -- Your Name <you@example.com>  Thu, 12 Nov 2026 18:00:00 +0100
+
+ticketdesk (0.5.0) unstable; urgency=medium
+
+  * Create tickets.
+  * Document editor for descriptions, with tables (merged cells),
+    lists, tasks, code, quotes and panels.
+
+ -- Your Name <you@example.com>  Thu, 12 Nov 2026 12:00:00 +0100
+
+ticketdesk (0.4.0) unstable; urgency=medium
+
+  * Swimlanes on boards; the ticket opens in a panel under the board.
+  * Bookmarks for projects and boards; exact back/forward history.
+  * Compact filter bar; details collapsed under the ticket title.
+
+ -- Your Name <you@example.com>  Wed, 11 Nov 2026 22:00:00 +0100
+
+ticketdesk (0.3.0) unstable; urgency=medium
+
+  * Project lists, filter bar like the top bar extension, child and linked
+    tickets with drill-down, choosing which ticket fields are shown.
+
+ -- Your Name <you@example.com>  Wed, 11 Nov 2026 20:00:00 +0100
+
+ticketdesk (0.2.0) unstable; urgency=medium
+
+  * Boards with drag and drop, resizable panes, images embedded in
+    descriptions and comments.
+
+ -- Your Name <you@example.com>  Wed, 11 Nov 2026 18:00:00 +0100
+
+ticketdesk (0.1.0) unstable; urgency=medium
+
+  * First release.
+
+ -- Your Name <you@example.com>  Wed, 11 Nov 2026 12:00:00 +0100

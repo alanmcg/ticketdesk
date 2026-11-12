@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: GPL-2.0-or-later -->
+<!-- Ticket Desk document editor. Runs in WebKitGTK; the formatting toolbar is native GTK
+     (rich_editor.py) and talks to this page through the `td` object and script messages. -->
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:">
+<style>
+:root {
+  --fg: #1e1e1e; --bg: #ffffff; --dim: rgba(0,0,0,.55); --accent: #3584e4; --border: rgba(0,0,0,.15);
+  --code-bg: rgba(0,0,0,.06); --header-bg: rgba(0,0,0,.05); --select: rgba(53,132,228,.25);
+  --info: #3584e4; --note: #9141ac; --success: #2ec27e; --warning: #e5a50a; --error: #e01b24;
+  --font: system-ui, sans-serif; --mono: monospace; --size: 11pt; --popover-bg: #ffffff;
+}
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); height: 100%; }
+body.auto { height: auto; }
+body { font: var(--size)/1.5 var(--font); }
+#editor { outline: none; padding: 12px 14px 24px; min-height: 100%; box-sizing: border-box; overflow-wrap: anywhere; caret-color: var(--accent); }
+#editor.compact { padding: 8px 10px 10px; }
+body.auto #editor { min-height: 0; }  /* the editor's height follows its content */
+#editor.empty > :first-child::before { content: attr(data-placeholder); color: var(--dim); position: absolute; pointer-events: none; }
+::selection { background: var(--select); }
+p { margin: 0 0 .6em; }
+h1, h2, h3, h4, h5, h6 { margin: .9em 0 .4em; line-height: 1.25; }
+h1 { font-size: 1.6em; } h2 { font-size: 1.35em; } h3 { font-size: 1.15em; } h4, h5, h6 { font-size: 1em; }
+#editor > :first-child { margin-top: 0; }
+ul, ol { margin: 0 0 .6em; padding-left: 1.6em; }
+li > p { margin: 0; }
+li { margin: .1em 0; }
+ul[data-type="tasks"] { list-style: none; padding-left: .2em; }
+ul[data-type="tasks"] > li { position: relative; padding-left: 1.7em; }
+ul[data-type="tasks"] > li::before {
+  content: ""; position: absolute; left: 0; top: .25em; width: 1em; height: 1em; box-sizing: border-box;
+  border: 2px solid var(--dim); border-radius: 4px; cursor: pointer;
+}
+ul[data-type="tasks"] > li[data-done="true"]::before { background: var(--accent); border-color: var(--accent); }
+ul[data-type="tasks"] > li[data-done="true"]::after {
+  content: ""; position: absolute; left: .32em; top: .38em; width: .3em; height: .55em;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); pointer-events: none;
+}
+ul[data-type="tasks"] > li[data-done="true"] { color: var(--dim); }
+code { font-family: var(--mono); font-size: .92em; background: var(--code-bg); border-radius: 4px; padding: .05em .3em; }
+pre { font-family: var(--mono); font-size: .92em; background: var(--code-bg); border-radius: 8px; padding: .6em .8em; margin: 0 0 .6em; white-space: pre-wrap; tab-size: 4; }
+pre[data-lang]::before { content: attr(data-lang); display: block; font-family: var(--font); font-size: .8em; color: var(--dim); }
+blockquote { margin: 0 0 .6em; padding: 0 0 0 .9em; border-left: 3px solid var(--border); color: var(--dim); }
+hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+a { color: var(--accent); }
+.panel { border-radius: 8px; padding: .55em .8em .05em 2em; margin: 0 0 .6em; position: relative; background: color-mix(in srgb, var(--info) 12%, transparent); }
+.panel::before { content: "i"; position: absolute; left: .7em; top: .55em; font-weight: bold; color: var(--info); }
+.panel[data-panel="note"] { background: color-mix(in srgb, var(--note) 12%, transparent); } .panel[data-panel="note"]::before { content: "✎"; color: var(--note); }
+.panel[data-panel="success"] { background: color-mix(in srgb, var(--success) 14%, transparent); } .panel[data-panel="success"]::before { content: "✓"; color: var(--success); }
+.panel[data-panel="warning"] { background: color-mix(in srgb, var(--warning) 16%, transparent); } .panel[data-panel="warning"]::before { content: "!"; color: var(--warning); }
+.panel[data-panel="error"] { background: color-mix(in srgb, var(--error) 12%, transparent); } .panel[data-panel="error"]::before { content: "✕"; color: var(--error); }
+table { border-collapse: collapse; margin: 0 0 .8em; max-width: 100%; }
+td, th { border: 1px solid var(--border); padding: .35em .55em; vertical-align: top; min-width: 3em; text-align: left; }
+th { background: var(--header-bg); font-weight: bold; }
+td > :last-child, th > :last-child { margin-bottom: 0; }
+td.current, th.current { outline: 2px solid var(--accent); outline-offset: -2px; }
+figure.td-image { margin: 0 0 .8em; padding: 0; position: relative; max-width: 100%; width: fit-content; line-height: 0; border-radius: 6px; cursor: default; }
+figure.td-image[data-width] { width: auto; }
+figure.td-image img { display: block; max-width: 100%; height: auto; border-radius: 6px; }
+figure.td-image[data-width] img { width: 100%; }
+figure.td-image img:not([src]) { width: 14em; height: 6em; background: var(--code-bg); }
+figure.td-image:has(img:not([src]))::after { content: attr(data-alt); position: absolute; left: .8em; top: 2.4em; line-height: 1.4; color: var(--dim); font-size: .9em; }
+figure.td-image.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+figure.td-image .td-handle { position: absolute; right: -6px; bottom: -6px; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg, #fff); box-sizing: border-box; cursor: nwse-resize; opacity: 0; transition: opacity .1s; }
+figure.td-image:hover .td-handle, figure.td-image.selected .td-handle { opacity: 1; }
+figure.td-image.resizing { outline: 2px dashed var(--accent); }
+.td-drop-caret { outline: 2px solid var(--accent); }
+.adf-inline.mention { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); border-radius: 999px; padding: 0 .4em; }
+#mentions { position: absolute; z-index: 10; min-width: 16em; max-width: 24em; background: var(--popover-bg); color: var(--fg);
+  border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.25); padding: 4px; font-size: .95em; line-height: 1.4; }
+#mentions[hidden] { display: none; }
+#mentions .item { padding: .35em .6em; border-radius: 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mentions .item.active { background: var(--select); }
+#mentions .hint { padding: .35em .6em; color: var(--dim); }
+.adf-block { border: 1px dashed var(--border); border-radius: 8px; padding: .45em .7em; margin: 0 0 .6em; color: var(--dim); font-size: .92em; user-select: none; }
+.adf-inline { background: var(--code-bg); border-radius: 4px; padding: 0 .3em; color: var(--fg); user-select: all; }
+</style>
+</head>
+<body>
+<div id="editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true"><p><br></p></div>
+<div id="mentions" role="listbox" aria-label="People" hidden></div>
+<script>
+'use strict';
+const ed = document.getElementById('editor');
+
+function post(type, data) {
+  const msg = JSON.stringify(Object.assign({type}, data || {}));
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.td) {
+    window.webkit.messageHandlers.td.postMessage(msg);
+  } else if (window.tdTestSink) {
+    window.tdTestSink(msg);
+  }
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ------------------------------------------------------------------ selection helpers
+
+function selRange() {
+  const s = window.getSelection();
+  return s.rangeCount ? s.getRangeAt(0) : null;
+}
+
+function nodeAtCaret() {
+  const r = selRange();
+  if (!r) return null;
+  let n = r.startContainer;
+  if (n.nodeType === 1 && n.childNodes[r.startOffset] && r.collapsed === false) n = n.childNodes[r.startOffset];
+  return n && ed.contains(n) ? n : null;
+}
+
+function closest(n, selector) {
+  while (n && n !== ed) {
+    if (n.nodeType === 1 && n.matches(selector)) return n;
+    n = n.parentNode;
+  }
+  return null;
+}
+
+const BLOCKS = 'p,h1,h2,h3,h4,h5,h6,pre,li,blockquote,div.panel';
+
+function currentBlock() {
+  return closest(nodeAtCaret(), 'p,h1,h2,h3,h4,h5,h6,pre,li');
+}
+
+function caretTo(el, atEnd) {
+  const r = document.createRange();
+  let target = el;
+  // descend to the first/last text-holding block
+  while (target.firstElementChild && /^(P|H\d|PRE|LI|UL|OL|DIV|BLOCKQUOTE|TD|TH)$/.test(target.tagName)) {
+    const next = atEnd ? target.lastElementChild : target.firstElementChild;
+    if (!next || next.tagName === 'BR' || next.isContentEditable === false) break;
+    target = next;
+  }
+  r.selectNodeContents(target);
+  r.collapse(!atEnd);
+  const s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+
+function atStartOf(el) {
+  const r = selRange();
+  if (!r || !r.collapsed) return false;
+  const pre = document.createRange();
+  pre.selectNodeContents(el);
+  pre.setEnd(r.startContainer, r.startOffset);
+  return pre.toString().length === 0 && !pre.cloneContents().querySelector('.adf-inline,.adf-block,br + *');
+}
+
+function atEndOf(el) {
+  const r = selRange();
+  if (!r || !r.collapsed) return false;
+  const post_ = document.createRange();
+  post_.selectNodeContents(el);
+  post_.setStart(r.endContainer, r.endOffset);
+  return post_.toString().length === 0 && !post_.cloneContents().querySelector('.adf-inline,.adf-block');
+}
+
+// ------------------------------------------------------------------ tables
+
+// A table as a grid model: every cell with its start row/column and spans. All table
+// operations change the model, then the rows are rebuilt from it, so merged cells can
+// never end up overlapping or leaving holes.
+function tableModel(table) {
+  const trs = [...table.rows];
+  const cells = [];
+  const taken = [];
+  let cols = 0;
+  trs.forEach((tr, r) => {
+    let c = 0;
+    for (const el of tr.cells) {
+      while (taken[r] && taken[r][c]) c++;
+      const rs = Math.max(1, parseInt(el.getAttribute('rowspan') || '1', 10) || 1);
+      const cs = Math.max(1, parseInt(el.getAttribute('colspan') || '1', 10) || 1);
+      const cell = {el, r, c, rs, cs};
+      cells.push(cell);
+      for (let i = r; i < r + rs; i++) {
+        taken[i] = taken[i] || [];
+        for (let j = c; j < c + cs; j++) taken[i][j] = cell;
+      }
+      c += cs;
+      cols = Math.max(cols, c);
+    }
+  });
+  const rows = Math.max(trs.length, ...cells.map(x => x.r + x.rs));
+  // spans running past the last row are clipped, like browsers do
+  for (const x of cells) x.rs = Math.min(x.rs, rows - x.r);
+  return {table, cells, rows, cols};
+}
+
+function cellAt(m, r, c) {
+  return m.cells.find(x => r >= x.r && r < x.r + x.rs && c >= x.c && c < x.c + x.cs) || null;
+}
+
+function newCell(tag) {
+  const el = document.createElement(tag || 'td');
+  el.innerHTML = '<p><br></p>';
+  return el;
+}
+
+function rebuild(m) {
+  // fill holes (from irregular tables) with empty cells
+  for (let r = 0; r < m.rows; r++)
+    for (let c = 0; c < m.cols; c++)
+      if (!cellAt(m, r, c)) m.cells.push({el: newCell(r === 0 && isHeaderRow(m) ? 'th' : 'td'), r, c, rs: 1, cs: 1});
+  // rows in which no cell starts cannot exist in Jira: fold them into the spans above
+  for (let r = m.rows - 1; r >= 0; r--) {
+    if (!m.cells.some(x => x.r === r)) {
+      for (const x of m.cells) {
+        if (x.r < r && x.r + x.rs > r) x.rs--;
+        else if (x.r > r) x.r--;
+      }
+      m.rows--;
+    }
+  }
+  for (let c = m.cols - 1; c >= 0; c--) {
+    if (!m.cells.some(x => x.c === c)) {
+      for (const x of m.cells) {
+        if (x.c < c && x.c + x.cs > c) x.cs--;
+        else if (x.c > c) x.c--;
+      }
+      m.cols--;
+    }
+  }
+  const body = m.table.tBodies[0] || m.table.appendChild(document.createElement('tbody'));
+  for (const part of [...m.table.querySelectorAll(':scope > thead, :scope > tfoot')]) part.remove();
+  const oldRows = [...m.table.rows];
+  body.innerHTML = '';
+  for (let r = 0; r < m.rows; r++) {
+    const tr = oldRows[r] ? oldRows[r].cloneNode(false) : document.createElement('tr');
+    for (const x of m.cells.filter(x => x.r === r).sort((a, b) => a.c - b.c)) {
+      if (x.rs > 1) x.el.setAttribute('rowspan', x.rs); else x.el.removeAttribute('rowspan');
+      if (x.cs > 1) x.el.setAttribute('colspan', x.cs); else x.el.removeAttribute('colspan');
+      if (!x.el.firstElementChild && !x.el.textContent.trim()) x.el.innerHTML = '<p><br></p>';
+      tr.appendChild(x.el);
+    }
+    body.appendChild(tr);
+  }
+}
+
+function isHeaderRow(m) {
+  const first = m.cells.filter(x => x.r === 0);
+  return first.length > 0 && first.every(x => x.el.tagName === 'TH');
+}
+
+function isEmptyCell(el) {
+  return !el.textContent.trim() && !el.querySelector('.adf-inline,.adf-block,hr,table');
+}
+
+const tableOps = {
+  rowAbove(m, x) { insertRow(m, x.r); return x; },
+  rowBelow(m, x) { insertRow(m, x.r + x.rs); return x; },
+  colLeft(m, x) { insertCol(m, x.c); return x; },
+  colRight(m, x) { insertCol(m, x.c + x.cs); return x; },
+  deleteRow(m, x) {
+    const r = x.r;
+    if (m.rows === 1) return null;
+    m.cells = m.cells.filter(y => !(y.r === r && y.rs === 1));
+    for (const y of m.cells) {
+      if (y.r === r) y.rs--;                       // started here and continues: now starts below
+      else if (y.r < r && y.r + y.rs > r) y.rs--;   // runs through the deleted row
+      else if (y.r > r) y.r--;
+    }
+    m.rows--;
+    return cellAt(m, Math.min(r, m.rows - 1), x.c);
+  },
+  deleteCol(m, x) {
+    const c = x.c;
+    if (m.cols === 1) return null;
+    m.cells = m.cells.filter(y => !(y.c === c && y.cs === 1));
+    for (const y of m.cells) {
+      if (y.c === c) y.cs--;
+      else if (y.c < c && y.c + y.cs > c) y.cs--;
+      else if (y.c > c) y.c--;
+    }
+    m.cols--;
+    return cellAt(m, x.r, Math.min(c, m.cols - 1));
+  },
+  mergeRight(m, x) {
+    const y = cellAt(m, x.r, x.c + x.cs);
+    if (!y || y.r !== x.r || y.rs !== x.rs) throw new Error('The cell to the right has a different height; split it first');
+    absorb(x.el, y.el);
+    m.cells = m.cells.filter(z => z !== y);
+    x.cs += y.cs;
+    return x;
+  },
+  mergeDown(m, x) {
+    const y = cellAt(m, x.r + x.rs, x.c);
+    if (!y || y.c !== x.c || y.cs !== x.cs) throw new Error('The cell below has a different width; split it first');
+    absorb(x.el, y.el);
+    m.cells = m.cells.filter(z => z !== y);
+    x.rs += y.rs;
+    return x;
+  },
+  split(m, x) {
+    if (x.rs === 1 && x.cs === 1) throw new Error('This cell is not merged');
+    for (let r = x.r; r < x.r + x.rs; r++)
+      for (let c = x.c; c < x.c + x.cs; c++)
+        if (r !== x.r || c !== x.c) m.cells.push({el: newCell(x.el.tagName.toLowerCase()), r, c, rs: 1, cs: 1});
+    x.rs = 1; x.cs = 1;
+    return x;
+  },
+  headerRow(m, x) {
+    const on = !isHeaderRow(m);
+    for (const y of m.cells.filter(y => y.r === 0)) y.el = retag(y.el, on ? 'th' : 'td');
+    return m.cells.find(y => y.r === x.r && y.c === x.c) || x;
+  },
+  headerCol(m, x) {
+    const first = m.cells.filter(y => y.c === 0);
+    const on = !first.every(y => y.el.tagName === 'TH');
+    for (const y of first) y.el = retag(y.el, on ? 'th' : 'td');
+    return m.cells.find(y => y.r === x.r && y.c === x.c) || x;
+  },
+};
+
+function insertRow(m, at) {
+  for (const y of m.cells) {
+    if (y.r < at && y.r + y.rs > at) y.rs++;
+    else if (y.r >= at) y.r++;
+  }
+  m.rows++;
+  for (let c = 0; c < m.cols; c++) if (!cellAt(m, at, c)) m.cells.push({el: newCell('td'), r: at, c, rs: 1, cs: 1});
+}
+
+function insertCol(m, at) {
+  for (const y of m.cells) {
+    if (y.c < at && y.c + y.cs > at) y.cs++;
+    else if (y.c >= at) y.c++;
+  }
+  m.cols++;
+  for (let r = 0; r < m.rows; r++) {
+    if (!cellAt(m, r, at)) {
+      const left = cellAt(m, r, at - 1);
+      const tag = r === 0 && isHeaderRow(m) ? 'th' : (left && left.el.tagName === 'TH' && at > 0 && r > 0 ? 'td' : 'td');
+      m.cells.push({el: newCell(tag), r, c: at, rs: 1, cs: 1});
+    }
+  }
+}
+
+function absorb(into, from) {
+  if (isEmptyCell(from)) return;
+  if (isEmptyCell(into)) into.innerHTML = '';
+  while (from.firstChild) into.appendChild(from.firstChild);
+}
+
+function retag(el, tag) {
+  if (el.tagName.toLowerCase() === tag) return el;
+  const n = document.createElement(tag);
+  for (const a of el.attributes) n.setAttribute(a.name, a.value);
+  while (el.firstChild) n.appendChild(el.firstChild);
+  return n;
+}
+
+function currentCell() {
+  return closest(nodeAtCaret(), 'td,th');
+}
+
+// Replace a node by new HTML. Undo works through the editor's own history (below), so
+// this does not depend on how an engine's insertHTML treats tables or lists.
+function replaceNode(node, newHtml) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = newHtml;
+  const nodes = [...tmp.childNodes];
+  node.replaceWith(...nodes);
+  return nodes;
+}
+
+// ------------------------------------------------------------------ undo history
+
+const hist = {stack: [], index: -1, timer: 0, dirty: false};
+
+function caretPath() {
+  const r = selRange();
+  if (!r || !ed.contains(r.startContainer)) return null;
+  const path = [];
+  let n = r.startContainer;
+  while (n && n !== ed) {
+    path.unshift([...n.parentNode.childNodes].indexOf(n));
+    n = n.parentNode;
+  }
+  return {path, offset: r.startOffset};
+}
+
+function setCaretPath(c) {
+  if (!c) return;
+  let n = ed;
+  for (const i of c.path) {
+    if (!n.childNodes[i]) break;
+    n = n.childNodes[i];
+  }
+  const r = document.createRange();
+  const max = n.nodeType === 3 ? n.length : n.childNodes.length;
+  r.setStart(n, Math.min(c.offset, max));
+  r.collapse(true);
+  const s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+
+function record() {
+  clearTimeout(hist.timer);
+  hist.dirty = false;
+  const snap = {html: ed.innerHTML, caret: caretPath()};
+  const top = hist.stack[hist.index];
+  if (top && top.html === snap.html) { top.caret = snap.caret; return; }
+  hist.stack = hist.stack.slice(0, hist.index + 1);
+  hist.stack.push(snap);
+  if (hist.stack.length > 300) hist.stack.shift();
+  hist.index = hist.stack.length - 1;
+}
+
+function typed() {                 // typing is grouped: one undo step per pause
+  hist.dirty = true;
+  clearTimeout(hist.timer);
+  hist.timer = setTimeout(record, 700);
+}
+
+// Run an editing operation as one undo step.
+function edit(fn) {
+  if (hist.dirty) record();
+  const result = fn();
+  record();
+  changed();
+  return result;
+}
+
+function restore(snap) {
+  ed.innerHTML = snap.html;
+  ed.focus();
+  setCaretPath(snap.caret);
+  changed();
+}
+
+function undo() {
+  if (hist.dirty) record();
+  if (hist.index > 0) { hist.index--; restore(hist.stack[hist.index]); }
+}
+
+function redo() {
+  if (hist.index < hist.stack.length - 1) { hist.index++; restore(hist.stack[hist.index]); }
+}
+
+ed.addEventListener('beforeinput', (e) => {
+  if (e.inputType === 'historyUndo') { e.preventDefault(); undo(); }
+  else if (e.inputType === 'historyRedo') { e.preventDefault(); redo(); }
+});
+
+function tableOp(name) {
+  const cell = currentCell();
+  if (!cell) return;
+  const table = cell.closest('table');
+  if (name === 'deleteTable') {
+    const after = table.nextElementSibling;
+    const nodes = replaceNode(table, after ? '' : '<p><br></p>');
+    if (nodes[0]) caretTo(nodes[0], false); else if (after) caretTo(after, false);
+    return;
+  }
+  const clone = table.cloneNode(true);
+  const path = [...table.querySelectorAll('td,th')].indexOf(cell);
+  const cloneCell = clone.querySelectorAll('td,th')[path];
+  const m = tableModel(clone);
+  const x = m.cells.find(y => y.el === cloneCell);
+  let target;
+  try {
+    target = tableOps[name](m, x);
+  } catch (e) {
+    post('notice', {text: e.message});
+    return;
+  }
+  if (target === null) {           // last row/column: remove the table
+    tableOp('deleteTable');
+    return;
+  }
+  rebuild(m);
+  (target ? target.el : clone.querySelector('td,th')).setAttribute('data-td-focus', '1');
+  table.replaceWith(clone);
+  const focus = ed.querySelector('[data-td-focus]');
+  if (focus) {
+    focus.removeAttribute('data-td-focus');
+    caretTo(focus, false);
+  }
+}
+
+function insertTable(rows, cols, header) {
+  let h = '<table><tbody>';
+  for (let r = 0; r < rows; r++) {
+    h += '<tr>';
+    for (let c = 0; c < cols; c++) {
+      const tag = header && r === 0 ? 'th' : 'td';
+      h += `<${tag}${r === 0 && c === 0 ? ' data-td-focus="1"' : ''}><p><br></p></${tag}>`;
+    }
+    h += '</tr>';
+  }
+  h += '</tbody></table><p><br></p>';
+  insertBlocks(h);
+  const focus = ed.querySelector('[data-td-focus]');
+  if (focus) {
+    focus.removeAttribute('data-td-focus');
+    caretTo(focus, false);
+  }
+}
+
+// Insert block content after the current top-level block (replacing it if it is empty).
+function insertBlocks(htmlText) {
+  let block = currentBlock();
+  while (block && block.parentNode !== ed && !closest(block.parentNode, 'td,th')) block = block.parentNode;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = htmlText;
+  const nodes = [...tmp.childNodes];
+  if (!block) { ed.append(...nodes); return nodes; }
+  if (!block.textContent.trim() && !block.querySelector('.adf-inline,table,hr')) block.replaceWith(...nodes);
+  else block.after(...nodes);
+  return nodes;
+}
+
+// Repair tables after free editing (e.g. deleting a selection across cells).
+function normalizeTables() {
+  for (const table of ed.querySelectorAll('table')) {
+    if (!table.querySelector('td,th')) { table.remove(); continue; }
+    const m = tableModel(table);
+    let irregular = false;
+    for (let r = 0; r < m.rows && !irregular; r++)
+      for (let c = 0; c < m.cols; c++) if (!cellAt(m, r, c)) { irregular = true; break; }
+    if (irregular || [...table.rows].some(tr => !tr.cells.length)) rebuild(m);
+    for (const cell of table.querySelectorAll('td,th'))
+      if (!cell.firstChild) cell.innerHTML = '<p><br></p>';
+  }
+}
+
+function moveCell(delta) {
+  const cell = currentCell();
+  if (!cell) return false;
+  const table = cell.closest('table');
+  const all = [...table.querySelectorAll('td,th')].filter(c => c.closest('table') === table);
+  const i = all.indexOf(cell) + delta;
+  if (i >= all.length) {
+    edit(() => tableOp('rowBelow'));
+    const again = currentCell();
+    const m = tableModel(again.closest('table'));
+    const x = m.cells.find(y => y.el === again);
+    const next = cellAt(m, x.r + x.rs, 0);
+    if (next) caretTo(next.el, false);
+    return true;
+  }
+  if (i < 0) return true;
+  caretTo(all[i], false);
+  return true;
+}
+
+// ------------------------------------------------------------------ formatting
+
+function inTag(tag) {
+  return !!closest(nodeAtCaret(), tag);
+}
+
+function blockType() {
+  const n = nodeAtCaret();
+  if (closest(n, 'pre')) return 'pre';
+  const li = closest(n, 'li');
+  if (li) {
+    const list = li.parentNode;
+    if (list.tagName === 'OL') return 'ol';
+    return list.getAttribute('data-type') === 'tasks' ? 'tasks' : 'ul';
+  }
+  const h = closest(n, 'h1,h2,h3,h4,h5,h6');
+  if (h) return h.tagName.toLowerCase();
+  if (closest(n, 'blockquote')) return 'blockquote';
+  return 'p';
+}
+
+// Some engines put a new list inside the paragraph it was made from (<p><ul>…</ul></p>);
+// lift such lists out so the document stays valid. The caret is kept.
+function liftLists() {
+  const r = selRange();
+  const keep = r ? [r.startContainer, r.startOffset] : null;
+  let moved = false;
+  for (const list of [...ed.querySelectorAll('p > ul, p > ol, h1 > ul, h1 > ol, h2 > ul, h2 > ol, h3 > ul, h3 > ol')]) {
+    const parent = list.parentNode;
+    const before = document.createElement(parent.tagName);
+    while (parent.firstChild && parent.firstChild !== list) before.appendChild(parent.firstChild);
+    if (before.textContent.trim() || before.querySelector('.adf-inline')) parent.before(before);
+    parent.before(list);
+    if (!parent.textContent.trim() && !parent.querySelector('.adf-inline')) parent.remove();
+    moved = true;
+  }
+  if (moved && keep && ed.contains(keep[0])) {
+    const nr = document.createRange();
+    nr.setStart(keep[0], Math.min(keep[1], keep[0].nodeType === 3 ? keep[0].length : keep[0].childNodes.length));
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(nr);
+  }
+}
+
+const LISTS = ['ul', 'ol', 'tasks'];
+
+function focusMarked(atEnd) {
+  const el = ed.querySelector('[data-td-new]');
+  if (el) { el.removeAttribute('data-td-new'); caretTo(el, atEnd); }
+}
+
+// Turn the current block into a list of its own. (Engines' list commands merge a new
+// list into a neighbouring one, which would turn a bullet list into tasks.)
+function makeList(kind) {
+  const r = selRange();
+  const block = currentBlock();
+  const multi = r && !r.collapsed && block && !block.contains(r.endContainer);
+  if (multi || !block) {
+    document.execCommand(kind === 'ol' ? 'insertOrderedList' : 'insertUnorderedList');
+    liftLists();
+    if (kind === 'tasks') { const ul = closest(nodeAtCaret(), 'ul'); if (ul) ul.setAttribute('data-type', 'tasks'); }
+    return;
+  }
+  const inner = block.tagName === 'PRE' ? esc(block.textContent) : block.innerHTML;
+  const open = kind === 'ol' ? '<ol>' : kind === 'tasks' ? '<ul data-type="tasks">' : '<ul>';
+  const close = kind === 'ol' ? '</ol>' : '</ul>';
+  const li = kind === 'tasks' ? '<li data-done="false" data-td-new="1">' : '<li data-td-new="1">';
+  replaceNode(block, open + li + (inner && inner !== '<br>' ? inner : '<br>') + '</li>' + close);
+  focusMarked(true);
+}
+
+// Turn a list item back into paragraph(s), splitting its list around it. Done on the
+// DOM directly: engines' list commands leave stray styled spans behind.
+function unlistItem(li) {
+  const r = selRange();
+  const keep = r ? [r.startContainer, r.startOffset] : null;
+  const list = li.parentNode;
+  const rest = [...list.children].slice([...list.children].indexOf(li) + 1);
+  const out = [];
+  let p = document.createElement('p');
+  for (const n of [...li.childNodes]) {
+    if (n.nodeType === 1 && /^(UL|OL|P|PRE|BLOCKQUOTE|TABLE|DIV|H[1-6])$/.test(n.tagName)) {
+      if (p.childNodes.length) out.push(p);
+      p = document.createElement('p');
+      out.push(n);
+    } else {
+      p.appendChild(n);
+    }
+  }
+  if (p.childNodes.length || !out.length) {
+    if (!p.childNodes.length) p.innerHTML = '<br>';
+    out.push(p);
+  }
+  li.remove();
+  list.after(...out);
+  if (rest.length) {
+    const tail = list.cloneNode(false);
+    tail.removeAttribute('start');
+    for (const x of rest) tail.appendChild(x);
+    out[out.length - 1].after(tail);
+  }
+  if (!list.children.length) list.remove();
+  if (keep && ed.contains(keep[0])) {
+    const nr = document.createRange();
+    nr.setStart(keep[0], Math.min(keep[1], keep[0].nodeType === 3 ? keep[0].length : keep[0].childNodes.length));
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(nr);
+  } else {
+    caretTo(out[0], true);
+  }
+}
+
+function setBlock(tag) {
+  const now = blockType();
+  const li = closest(nodeAtCaret(), 'li');
+  const list = li && li.parentNode;
+  if (LISTS.includes(now) && LISTS.includes(tag)) {
+    if (now === tag) {                                   // toggle the list off
+      unlistItem(li);
+    } else if ((now === 'ul' && tag === 'tasks') || (now === 'tasks' && tag === 'ul')) {
+      if (tag === 'tasks') list.setAttribute('data-type', 'tasks'); else list.removeAttribute('data-type');
+    } else {                                             // bullets <-> numbers: same items, other list
+      const keep = caretPath();
+      const other = retag(list, tag === 'ol' ? 'ol' : 'ul');
+      if (tag === 'tasks') other.setAttribute('data-type', 'tasks'); else other.removeAttribute('data-type');
+      if (tag !== 'ol') other.removeAttribute('start');
+      list.replaceWith(other);
+      setCaretPath(keep);
+    }
+  } else if (LISTS.includes(tag)) {
+    makeList(tag);
+  } else {
+    if (LISTS.includes(now)) unlistItem(li);            // leave the list first
+    if (tag === 'blockquote') document.execCommand('formatBlock', false, now === 'blockquote' ? 'p' : 'blockquote');
+    else document.execCommand('formatBlock', false, now === tag ? 'p' : tag);
+  }
+  liftLists();
+}
+
+function toggleCode() {
+  const code = closest(nodeAtCaret(), 'code');
+  const r = selRange();
+  if (code && !closest(code, 'pre')) {
+    const range = document.createRange();
+    range.selectNode(code);
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(range);
+    document.execCommand('insertText', false, code.textContent);
+  } else if (r && !r.collapsed) {
+    document.execCommand('insertHTML', false, '<code>' + esc(r.toString()) + '</code>&#8203;');
+    cleanZeroWidth();
+  }
+}
+
+function cleanZeroWidth() {
+  const walker = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) if (walker.currentNode.nodeValue.includes('​')) nodes.push(walker.currentNode);
+  // keep the one right after the caret's code element: it lets typing continue outside the code
+  for (const n of nodes) if (!(n.previousSibling && n.previousSibling.nodeName === 'CODE')) n.nodeValue = n.nodeValue.replace(/​/g, '');
+}
+
+function setLink(url) {
+  const r = selRange();
+  if (!url) { document.execCommand('unlink'); return; }
+  if (r && r.collapsed) {
+    const a = closest(nodeAtCaret(), 'a');
+    if (a) { a.setAttribute('href', url); return; }
+    document.execCommand('insertHTML', false, `<a href="${esc(url)}">${esc(url)}</a>&nbsp;`);
+  } else {
+    document.execCommand('createLink', false, url);
+  }
+}
+
+function insertPanel(kind) {
+  const panel = closest(nodeAtCaret(), 'div.panel');
+  if (panel) {
+    if (kind) panel.setAttribute('data-panel', kind);
+    else {                                   // remove the panel, keep its content
+      const keep = caretPath();
+      const html = panel.innerHTML;
+      replaceNode(panel, html);
+      setCaretPath(keep);
+    }
+    return;
+  }
+  const block = currentBlock();
+  if (block && block.parentNode === ed) {
+    replaceNode(block, `<div class="panel" data-panel="${kind || 'info'}" data-td-new="1">${block.outerHTML}</div>`);
+  } else {
+    insertBlocks(`<div class="panel" data-panel="${kind || 'info'}" data-td-new="1"><p><br></p></div>`);
+  }
+  const p = ed.querySelector('[data-td-new]');
+  if (p) { p.removeAttribute('data-td-new'); caretTo(p, true); }
+}
+
+// Markdown-like shortcuts typed at the start of a paragraph
+const SHORTCUTS = [
+  [/^###$/, 'h3'], [/^##$/, 'h2'], [/^#$/, 'h1'], [/^[*-]$/, 'ul'], [/^1[.)]$/, 'ol'],
+  [/^>$/, 'blockquote'], [/^\[ ?\]$/, 'tasks'], [/^```$/, 'pre'],
+];
+
+function shortcut() {
+  const block = currentBlock();
+  if (!block || closest(block, 'pre') || block.tagName === 'LI' && blockType() !== 'ul') return false;
+  const r = selRange();
+  if (!r || !r.collapsed) return false;
+  const pre = document.createRange();
+  pre.selectNodeContents(block);
+  pre.setEnd(r.startContainer, r.startOffset);
+  const typed = pre.toString();
+  for (const [re, tag] of SHORTCUTS) {
+    if (re.test(typed)) {
+      if (block.tagName === 'LI' && tag !== 'tasks') return false;
+      record();                    // undo returns to the typed marker
+      const s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(pre);
+      document.execCommand('delete');
+      setBlock(tag);
+      record();
+      changed();
+      return true;
+    }
+  }
+  return false;
+}
+
+// ------------------------------------------------------------------ images
+
+// Image data lives outside the DOM (short blob: addresses in the document), so undo
+// snapshots stay small. `imageData` holds the data: URL of each image for saving.
+const imageData = new Map();   // blob url -> data url
+let selectedFigure = null;
+
+function dataUrlToBlobUrl(dataUrl) {
+  const m = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(dataUrl);
+  if (!m) return null;
+  const bin = m[2] ? atob(m[3]) : decodeURIComponent(m[3]);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], {type: m[1] || 'application/octet-stream'}));
+  imageData.set(url, dataUrl);
+  return url;
+}
+
+function newToken() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function contentWidth() {
+  const cs = getComputedStyle(ed);
+  return ed.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+}
+
+function decorateFigure(fig) {
+  if (!fig.querySelector('.td-handle')) {
+    const h = document.createElement('span');
+    h.className = 'td-handle';
+    h.setAttribute('aria-hidden', 'true');
+    fig.appendChild(h);
+  }
+  fig.setAttribute('contenteditable', 'false');
+  fig.setAttribute('draggable', 'false');
+  const img = fig.querySelector('img');
+  if (img) img.setAttribute('draggable', 'false');
+  applyWidth(fig);
+}
+
+function applyWidth(fig) {
+  const w = fig.getAttribute('data-width');
+  fig.style.width = w ? w + '%' : '';
+}
+
+function insertImage(dataUrl, name, natW, natH) {
+  const url = dataUrlToBlobUrl(dataUrl);
+  if (!url) return;
+  const fig = document.createElement('figure');
+  fig.className = 'td-image';
+  fig.setAttribute('data-pending', newToken());
+  fig.setAttribute('data-alt', name || 'image.png');
+  if (natW) fig.setAttribute('data-w', natW);
+  if (natH) fig.setAttribute('data-h', natH);
+  if (natW && natW > contentWidth()) fig.setAttribute('data-width', '100');
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = name || '';
+  fig.appendChild(img);
+  img.addEventListener('load', () => {
+    if (!fig.getAttribute('data-w')) {
+      fig.setAttribute('data-w', img.naturalWidth);
+      fig.setAttribute('data-h', img.naturalHeight);
+      if (img.naturalWidth > contentWidth() && !fig.getAttribute('data-width')) { fig.setAttribute('data-width', '100'); applyWidth(fig); }
+      changed();
+    }
+  }, {once: true});
+  decorateFigure(fig);
+  const p = document.createElement('p');
+  p.innerHTML = '<br>';
+  const holder = document.createElement('div');
+  holder.append(fig, p);
+  const nodes = insertBlocks(holder.innerHTML);
+  const placed = nodes.find(n => n.nodeType === 1 && n.matches('figure.td-image'));
+  if (placed) {
+    // innerHTML copies lose the load listener: re-attach it
+    const pi = placed.querySelector('img');
+    if (pi && !placed.getAttribute('data-w')) {
+      pi.addEventListener('load', () => {
+        placed.setAttribute('data-w', pi.naturalWidth);
+        placed.setAttribute('data-h', pi.naturalHeight);
+        if (pi.naturalWidth > contentWidth() && !placed.getAttribute('data-width')) { placed.setAttribute('data-width', '100'); applyWidth(placed); }
+        changed();
+      }, {once: true});
+    }
+    const after = placed.nextElementSibling;
+    if (after) caretTo(after, false);
+  }
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
+}
+
+const MAX_TRANSFER = 50 * 1024 * 1024;
+
+async function takeFiles(files) {
+  // images go into the text; other files are attached to the ticket
+  const others = [];
+  for (const f of files) {
+    if (f.size > MAX_TRANSFER) {
+      post('notice', {text: `${f.name} is too large to drop here; use Attach Files instead.`});
+      continue;
+    }
+    const data = await readFileAsDataUrl(f);
+    if (/^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(f.type)) {
+      edit(() => insertImage(data, f.name && f.name !== 'image.png' ? f.name : 'image.png'));
+    } else {
+      others.push({name: f.name || 'file', mime: f.type || 'application/octet-stream', data: data.split(',', 2)[1] || ''});
+    }
+  }
+  if (others.length) post('attach', {files: others});
+}
+
+function selectFigure(fig) {
+  if (selectedFigure && selectedFigure !== fig) selectedFigure.classList.remove('selected');
+  selectedFigure = fig;
+  if (fig) fig.classList.add('selected');
+  reportState();
+}
+
+function setImageWidth(pct) {
+  const fig = selectedFigure;
+  if (!fig || !ed.contains(fig)) return;
+  if (pct) fig.setAttribute('data-width', String(Math.round(pct)));
+  else fig.removeAttribute('data-width');
+  applyWidth(fig);
+}
+
+function removeImage() {
+  const fig = selectedFigure;
+  if (!fig || !ed.contains(fig)) return;
+  const next = fig.nextElementSibling || fig.previousElementSibling;
+  fig.remove();
+  selectedFigure = null;
+  if (!ed.firstElementChild) ed.innerHTML = '<p><br></p>';
+  if (next) caretTo(next, false); else caretTo(ed.firstElementChild, false);
+}
+
+// Click selects an image; dragging its handle resizes it (snapping to 5 %).
+ed.addEventListener('pointerdown', (e) => {
+  const fig = e.target.closest && e.target.closest('figure.td-image');
+  if (!fig) { if (selectedFigure) selectFigure(null); return; }
+  e.preventDefault();
+  selectFigure(fig);
+  if (!e.target.classList.contains('td-handle')) return;
+  if (hist.dirty) record();
+  const left = fig.getBoundingClientRect().left;
+  const total = contentWidth();
+  fig.classList.add('resizing');
+  e.target.setPointerCapture(e.pointerId);
+  const move = (ev) => {
+    const pct = Math.max(5, Math.min(100, Math.round(((ev.clientX - left) / total) * 100 / 5) * 5));
+    fig.setAttribute('data-width', String(pct));
+    applyWidth(fig);
+    post('state', Object.assign(JSON.parse(lastState || '{}'), {image: {width: pct}}));
+  };
+  const up = () => {
+    e.target.removeEventListener('pointermove', move);
+    e.target.removeEventListener('pointerup', up);
+    e.target.removeEventListener('pointercancel', up);
+    fig.classList.remove('resizing');
+    record();
+    changed();
+  };
+  e.target.addEventListener('pointermove', move);
+  e.target.addEventListener('pointerup', up);
+  e.target.addEventListener('pointercancel', up);
+});
+
+ed.addEventListener('dragover', (e) => {
+  if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }
+});
+
+ed.addEventListener('drop', (e) => {
+  const files = e.dataTransfer ? [...e.dataTransfer.files] : [];
+  if (!files.length) return;
+  e.preventDefault();
+  // put the caret where the files were dropped
+  const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+  if (r && ed.contains(r.startContainer)) {
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+  }
+  takeFiles(files);
+});
+
+// ------------------------------------------------------------------ @mentions
+
+// Typing @ and part of a name asks GTK for matching people ('mention-query'); GTK answers
+// with td.mentionResults(). The chosen person becomes a Jira mention (locked inline item).
+const mbox = document.getElementById('mentions');
+const mention = {active: false, node: null, start: 0, query: '', seq: 0, items: [], index: 0, timer: 0};
+
+function utf8b64(obj) {
+  return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+}
+
+function detectMention() {
+  const r = selRange();
+  if (!r || !r.collapsed || r.startContainer.nodeType !== 3 || !ed.contains(r.startContainer)
+      || closest(r.startContainer, 'pre,code')) { closeMentions(); return; }
+  const node = r.startContainer;
+  const before = node.nodeValue.slice(0, r.startOffset);
+  const m = /(^|[\s( ])@([^\s@ ]{0,40})$/.exec(before);
+  if (!m) { closeMentions(); return; }
+  mention.active = true;
+  mention.node = node;
+  mention.start = r.startOffset - m[2].length - 1;
+  if (m[2] === mention.query && !mbox.hidden) return;
+  mention.query = m[2];
+  clearTimeout(mention.timer);
+  if (!mention.query) { showMentionHint('Type a name'); return; }
+  showMentionHint('Searching…');
+  const seq = ++mention.seq;
+  mention.timer = setTimeout(() => post('mention-query', {query: mention.query, seq}), 200);
+}
+
+function placeMentionBox() {
+  const r = selRange();
+  if (!r) return;
+  const rects = r.getClientRects();
+  const rect = rects.length ? rects[0] : (r.startContainer.parentElement || ed).getBoundingClientRect();
+  mbox.hidden = false;
+  const left = Math.max(4, Math.min(rect.left + window.scrollX, document.documentElement.clientWidth - mbox.offsetWidth - 4));
+  mbox.style.left = left + 'px';
+  mbox.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+  reportHeight();
+}
+
+function showMentionHint(text) {
+  mbox.innerHTML = `<div class="hint">${esc(text)}</div>`;
+  mention.items = [];
+  placeMentionBox();
+}
+
+function renderMentions() {
+  if (!mention.items.length) { showMentionHint(`No one found for “${mention.query}”`); return; }
+  mbox.innerHTML = mention.items.map((p, i) =>
+    `<div class="item${i === mention.index ? ' active' : ''}" role="option" data-i="${i}">${esc(p.name)}</div>`).join('');
+  placeMentionBox();
+}
+
+function closeMentions() {
+  if (!mention.active && mbox.hidden) return;
+  mention.active = false;
+  mention.items = [];
+  clearTimeout(mention.timer);
+  mbox.hidden = true;
+  reportHeight();
+}
+
+function chooseMention(person) {
+  if (!mention.node || !ed.contains(mention.node)) { closeMentions(); return; }
+  const node = mention.node;
+  const start = mention.start;
+  const end = Math.min(node.nodeValue.length, start + 1 + mention.query.length);
+  closeMentions();
+  edit(() => {
+    const r = document.createRange();
+    r.setStart(node, start);
+    r.setEnd(node, end);
+    r.deleteContents();
+    const span = document.createElement('span');
+    span.className = 'adf-inline mention';
+    span.setAttribute('contenteditable', 'false');
+    span.setAttribute('data-adf', utf8b64({type: 'mention', attrs: {id: person.id, text: '@' + person.name, accessLevel: ''}}));
+    span.textContent = '@' + person.name;
+    const space = document.createTextNode(' ');
+    r.insertNode(space);
+    r.insertNode(span);
+    const after = document.createRange();
+    after.setStartAfter(space);
+    after.collapse(true);
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(after);
+  });
+}
+
+mbox.addEventListener('mousedown', (e) => {
+  e.preventDefault();   // keep the caret in the text
+  const item = e.target.closest('.item');
+  if (item) chooseMention(mention.items[Number(item.getAttribute('data-i'))]);
+});
+
+ed.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== ed) closeMentions(); }, 150));
+
+// ------------------------------------------------------------------ paste
+
+const KEEP = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'PRE', 'CODE', 'BLOCKQUOTE', 'TABLE',
+  'THEAD', 'TBODY', 'TFOOT', 'TR', 'TD', 'TH', 'A', 'STRONG', 'B', 'EM', 'I', 'U', 'S', 'STRIKE', 'DEL', 'SUB', 'SUP',
+  'BR', 'HR']);
+const DROP = new Set(['SCRIPT', 'STYLE', 'IMG', 'PICTURE', 'SVG', 'VIDEO', 'AUDIO', 'IFRAME', 'OBJECT', 'EMBED',
+  'META', 'LINK', 'TITLE', 'HEAD', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'NOSCRIPT', 'TEMPLATE', 'CANVAS']);
+
+function sanitize(htmlText) {
+  const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+  let dropped = 0;
+  function walk(node, out) {
+    for (const n of [...node.childNodes]) {
+      if (n.nodeType === 3) { out.appendChild(document.createTextNode(n.nodeValue)); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = n.tagName;
+      if (DROP.has(tag)) { if (tag === 'IMG' || tag === 'PICTURE' || tag === 'SVG') dropped++; continue; }
+      if (tag === 'DIV' || tag === 'SECTION' || tag === 'ARTICLE') {
+        const p = document.createElement('p');
+        walk(n, p);
+        out.appendChild(p);
+        continue;
+      }
+      let target = out;
+      if (KEEP.has(tag)) {
+        const el = document.createElement(tag.toLowerCase());
+        if (tag === 'A') {
+          const href = n.getAttribute('href') || '';
+          if (/^(https?:|mailto:)/i.test(href)) el.setAttribute('href', href);
+        }
+        if (tag === 'TD' || tag === 'TH') {
+          for (const k of ['colspan', 'rowspan']) if (n.getAttribute(k)) el.setAttribute(k, n.getAttribute(k));
+        }
+        if (tag === 'OL' && n.getAttribute('start')) el.setAttribute('start', n.getAttribute('start'));
+        out.appendChild(el);
+        target = el;
+      } else if (tag === 'SPAN' || tag === 'FONT') {
+        // word processors express bold/italic with styles
+        const st = n.getAttribute('style') || '';
+        if (/font-weight:\s*(bold|[6-9]00)/i.test(st)) { const b = document.createElement('strong'); out.appendChild(b); target = b; }
+        if (/font-style:\s*italic/i.test(st)) { const i = document.createElement('em'); target.appendChild(i); target = i; }
+      }
+      walk(n, target);
+    }
+  }
+  const frag = document.createElement('div');
+  walk(doc.body, frag);
+  return {html: frag.innerHTML, dropped};
+}
+
+ed.addEventListener('paste', (e) => {
+  const dt = e.clipboardData;
+  if (!dt) return;
+  e.preventDefault();
+  if (hist.dirty) record();
+  const htmlText = dt.getData('text/html');
+  const text = dt.getData('text/plain');
+  const files = [...(dt.items || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
+  if (files.length && !closest(nodeAtCaret(), 'pre')) {
+    // a screenshot or copied image (often comes with a text/html version: the file wins)
+    takeFiles(files);
+    return;
+  }
+  if (closest(nodeAtCaret(), 'pre') || !htmlText) {
+    if (text) document.execCommand('insertText', false, text);
+  } else {
+    const clean = sanitize(htmlText);
+    document.execCommand('insertHTML', false, clean.html);
+    if (clean.dropped) post('notice', {text: 'Images from web pages are left out; paste or drop the image itself to add it.'});
+  }
+  liftLists();
+  record();
+  changed();
+});
+
+// ------------------------------------------------------------------ keyboard and mouse
+
+ed.addEventListener('keydown', (e) => {
+  if (!mbox.hidden && mention.active) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (mention.items.length) {
+        e.preventDefault();
+        const n = mention.items.length;
+        mention.index = (mention.index + (e.key === 'ArrowDown' ? 1 : n - 1)) % n;
+        renderMentions();
+      }
+      return;
+    }
+    if ((e.key === 'Enter' || e.key === 'Tab') && mention.items.length) {
+      e.preventDefault();
+      chooseMention(mention.items[mention.index]);
+      return;
+    }
+    if (e.key === 'Escape') { e.preventDefault(); closeMentions(); return; }
+  }
+  if (selectedFigure && ed.contains(selectedFigure)) {
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); edit(removeImage); return; }
+    if (e.key === 'Escape') { e.preventDefault(); selectFigure(null); return; }
+    if (e.key === 'Enter') {                         // new paragraph after the image
+      e.preventDefault();
+      const fig = selectedFigure;
+      selectFigure(null);
+      edit(() => { const p = document.createElement('p'); p.innerHTML = '<br>'; fig.after(p); caretTo(p, false); });
+      return;
+    }
+    if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) selectFigure(null);
+  }
+  const cell = currentCell();
+  if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
+    if (cell) { e.preventDefault(); moveCell(e.shiftKey ? -1 : 1); return; }
+    if (closest(nodeAtCaret(), 'li')) {
+      e.preventDefault();
+      edit(() => document.execCommand(e.shiftKey ? 'outdent' : 'indent'));
+      return;
+    }
+    if (closest(nodeAtCaret(), 'pre') && !e.shiftKey) { e.preventDefault(); document.execCommand('insertText', false, '    '); return; }
+    return;  // let focus move on
+  }
+  // Keep cells intact: no deleting across a cell boundary
+  if (cell && e.key === 'Backspace' && atStartOf(cell)) { e.preventDefault(); return; }
+  if (cell && e.key === 'Delete' && atEndOf(cell)) { e.preventDefault(); return; }
+  // Leave a code block or quote with Enter on an empty last line
+  if (e.key === 'Enter' && !e.shiftKey) {
+    const pre = closest(nodeAtCaret(), 'pre');
+    const last = pre && pre.lastChild;
+    const emptyLastLine = pre && (/\n\n$/.test(pre.textContent) || /<br>\s*<br>$/i.test(pre.innerHTML) ||
+      (last && last.nodeName === 'BR' && /\n$/.test(pre.textContent)));
+    if (pre && emptyLastLine && atEndOf(pre)) {
+      e.preventDefault();
+      if (hist.dirty) record();
+      while (pre.lastChild && (pre.lastChild.nodeName === 'BR' || (pre.lastChild.nodeType === 3 && !pre.lastChild.nodeValue.replace(/\n/g, '')))) pre.lastChild.remove();
+      if (pre.lastChild && pre.lastChild.nodeType === 3) pre.lastChild.nodeValue = pre.lastChild.nodeValue.replace(/\n+$/, '');
+      if (!pre.firstChild) pre.innerHTML = '<br>';
+      const p = document.createElement('p');
+      p.innerHTML = '<br>';
+      pre.after(p);
+      caretTo(p, false);
+      record();
+      changed();
+      return;
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+    const k = e.key.toLowerCase();
+    if (k === 'k') { e.preventDefault(); post('link-request', {href: (closest(nodeAtCaret(), 'a') || {}).href || ''}); return; }
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+    if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); return; }
+    if (k === 'e') { e.preventDefault(); edit(toggleCode); return; }
+    if (e.shiftKey && k === '7') { e.preventDefault(); edit(() => setBlock('ol')); return; }
+    if (e.shiftKey && k === '8') { e.preventDefault(); edit(() => setBlock('ul')); return; }
+    if (k === 'enter') { e.preventDefault(); post('submit'); return; }
+  }
+  if (e.key === ' ' && !e.ctrlKey && shortcut()) { e.preventDefault(); return; }
+});
+
+ed.addEventListener('mousedown', (e) => {
+  const li = e.target.closest && e.target.closest('ul[data-type="tasks"] > li');
+  if (li && e.offsetX < parseFloat(getComputedStyle(li).paddingLeft) && e.target === li) {
+    e.preventDefault();
+    edit(() => li.setAttribute('data-done', li.getAttribute('data-done') === 'true' ? 'false' : 'true'));
+  }
+});
+
+ed.addEventListener('click', (e) => {
+  const a = e.target.closest && e.target.closest('a');
+  if (a && (e.ctrlKey || e.metaKey)) { e.preventDefault(); post('open-link', {href: a.getAttribute('href')}); }
+});
+
+// ------------------------------------------------------------------ state and change reporting
+
+let changeTimer = 0;
+function changed() {
+  ed.classList.toggle('empty', isEmptyDoc());
+  clearTimeout(changeTimer);
+  changeTimer = setTimeout(() => { normalizeTables(); post('changed', {html: td.getHtml()}); }, 120);
+  reportState();
+}
+
+function isEmptyDoc() {
+  return ed.children.length <= 1 && !ed.textContent.trim() && !ed.querySelector('table,hr,.adf-block,.adf-inline,ul,ol,pre,blockquote,.panel');
+}
+
+ed.addEventListener('input', () => { typed(); changed(); detectMention(); });
+ed.addEventListener('click', () => { if (mention.active) detectMention(); });
+
+let lastState = '';
+function reportState() {
+  const cell = currentCell();
+  let canMergeRight = false, canMergeDown = false, canSplit = false, header = false;
+  if (cell) {
+    const m = tableModel(cell.closest('table'));
+    const x = m.cells.find(y => y.el === cell);
+    if (x) {
+      const right = cellAt(m, x.r, x.c + x.cs);
+      const below = cellAt(m, x.r + x.rs, x.c);
+      canMergeRight = !!right && right.r === x.r && right.rs === x.rs;
+      canMergeDown = !!below && below.c === x.c && below.cs === x.cs;
+      canSplit = x.rs > 1 || x.cs > 1;
+      header = isHeaderRow(m);
+    }
+  }
+  for (const c of ed.querySelectorAll('td.current,th.current')) if (c !== cell) c.classList.remove('current');
+  if (cell) cell.classList.add('current');
+  const state = {
+    bold: document.queryCommandState('bold'), italic: document.queryCommandState('italic'),
+    underline: document.queryCommandState('underline'), strike: document.queryCommandState('strikeThrough'),
+    code: inTag('code') && !inTag('pre'), link: inTag('a'), block: blockType(), panel: inTag('div.panel'),
+    inTable: !!cell, canMergeRight, canMergeDown, canSplit, headerRow: header,
+    image: selectedFigure && ed.contains(selectedFigure)
+      ? {width: selectedFigure.getAttribute('data-width') ? Number(selectedFigure.getAttribute('data-width')) : null} : null,
+  };
+  const s = JSON.stringify(state);
+  if (s !== lastState) { lastState = s; post('state', state); }
+}
+document.addEventListener('selectionchange', () => { if (ed.contains(nodeAtCaret())) reportState(); });
+
+function reportHeight() {
+  let h = ed.getBoundingClientRect().height;
+  if (!mbox.hidden) h = Math.max(h, mbox.getBoundingClientRect().bottom + window.scrollY + 6);  // room for the list
+  post('height', {height: Math.ceil(h)});
+}
+new ResizeObserver(reportHeight).observe(ed);
+
+// ------------------------------------------------------------------ API used by GTK
+
+const td = window.td = {
+  setContent(html, placeholder) {
+    ed.innerHTML = html || '<p><br></p>';
+    if (placeholder !== undefined) ed.firstElementChild && ed.setAttribute('data-placeholder', placeholder);
+    for (const el of ed.children) el.setAttribute && el.removeAttribute('data-placeholder');
+    if (ed.firstElementChild && ed.getAttribute('data-placeholder')) ed.firstElementChild.setAttribute('data-placeholder', ed.getAttribute('data-placeholder'));
+    ed.classList.toggle('empty', isEmptyDoc());
+    normalizeTables();
+    selectedFigure = null;
+    const wanted = [];
+    for (const fig of ed.querySelectorAll('figure.td-image')) {
+      decorateFigure(fig);
+      const img = fig.querySelector('img');
+      if (img && img.getAttribute('src') && img.getAttribute('src').startsWith('data:')) {
+        img.src = dataUrlToBlobUrl(img.getAttribute('src'));   // restored draft with new images
+      } else if (fig.getAttribute('data-media-id')) {
+        wanted.push({id: fig.getAttribute('data-media-id'), alt: fig.getAttribute('data-alt') || ''});
+      }
+    }
+    hist.stack = []; hist.index = -1;
+    record();
+    post('changed', {html: td.getHtml()});
+    if (wanted.length) post('need-images', {items: wanted});
+  },
+  setImageSrc(mediaId, dataUrl) {
+    const url = dataUrlToBlobUrl(dataUrl);
+    for (const fig of ed.querySelectorAll('figure.td-image')) {
+      if (fig.getAttribute('data-media-id') === mediaId) fig.querySelector('img').src = url;
+    }
+    // keep undo snapshots in step, so undo does not bring back the empty placeholder
+    for (const snap of hist.stack) {
+      snap.html = snap.html.replace(new RegExp('(data-media-id="' + mediaId.replace(/[^\w-]/g, '') + '"[^>]*>\\s*<img)(?![^>]*src=)', 'g'), `$1 src="${url}"`);
+    }
+  },
+  mentionResults(seq, people) {
+    if (seq !== mention.seq || !mention.active) return;
+    mention.items = people || [];
+    mention.index = 0;
+    renderMentions();
+  },
+  caretAtPoint(x, y) {
+    const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(x, y) : null;
+    if (r && ed.contains(r.startContainer)) {
+      ed.focus();
+      const s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+    }
+  },
+  insertImage(dataUrl, name, w, h) { ed.focus(); edit(() => insertImage(dataUrl, name, w, h)); },
+  getHtml() {
+    const clone = ed.cloneNode(true);
+    for (const c of clone.querySelectorAll('.td-handle')) c.remove();
+    for (const c of clone.querySelectorAll('figure.td-image')) {
+      c.classList.remove('selected', 'resizing');
+      c.removeAttribute('style');
+      const img = c.querySelector('img');
+      if (!img) continue;
+      if (c.getAttribute('data-pending')) {
+        const data = imageData.get(img.getAttribute('src'));
+        if (data) img.setAttribute('src', data); else c.remove();   // data must travel with new images
+      } else {
+        img.removeAttribute('src');                                 // existing images: Jira has them
+      }
+    }
+    for (const c of clone.querySelectorAll('.current')) c.classList.remove('current');
+    for (const c of clone.querySelectorAll('[class=""]')) c.removeAttribute('class');
+    for (const c of clone.querySelectorAll('[data-placeholder]')) c.removeAttribute('data-placeholder');
+    return clone.innerHTML.replace(/​/g, '');
+  },
+  focus(atEnd) { ed.focus(); if (atEnd) caretTo(ed, true); },
+  cmd(name, arg) {
+    ed.focus();
+    if (name === 'undo') return undo();
+    if (name === 'redo') return redo();
+    edit(() => {
+      switch (name) {
+        case 'bold': case 'italic': case 'underline': case 'strikeThrough':
+          document.execCommand(name); break;
+        case 'code': toggleCode(); break;
+        case 'link': setLink(arg); break;
+        case 'block': setBlock(arg); break;
+        case 'rule': insertBlocks('<hr><p data-td-new="1"><br></p>'); focusMarked(false); break;
+        case 'panel': insertPanel(arg); break;
+        case 'table': insertTable(arg.rows, arg.cols, arg.header); break;
+        case 'tableOp': tableOp(arg); break;
+        case 'indent': case 'outdent': document.execCommand(name); break;
+        case 'imageWidth': setImageWidth(arg); break;
+        case 'removeImage': removeImage(); break;
+      }
+    });
+  },
+  setTheme(t) {
+    const root = document.documentElement.style;
+    for (const [k, v] of Object.entries(t)) if (v) root.setProperty('--' + k, v);
+  },
+  setCompact(on) { ed.classList.toggle('compact', !!on); },
+  setAutoHeight(on) { document.body.classList.toggle('auto', !!on); document.documentElement.style.height = on ? 'auto' : ''; },
+};
+
+document.execCommand('defaultParagraphSeparator', false, 'p');
+document.execCommand('styleWithCSS', false, false);
+post('ready');
+</script>
+</body>
+</html>

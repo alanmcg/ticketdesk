@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Ticket Desk
+GenericName=Ticket Client
+Comment=Fast client for Jira Cloud
+Exec=ticketdesk %U
+Icon=@APP_ID@
+Terminal=false
+Type=Application
+Categories=Office;ProjectManagement;
+Keywords=jira;tickets;issues;atlassian;kanban;
+StartupNotify=true
+MimeType=x-scheme-handler/ticketdesk;

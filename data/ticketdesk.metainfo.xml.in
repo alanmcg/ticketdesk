@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>@APP_ID@</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+  <name>Ticket Desk</name>
+  <summary>Fast client for Jira Cloud</summary>
+  <developer id="io.github.ticketdesk">
+    <name>Ticket Desk contributors</name>
+  </developer>
+  <description>
+    <p>
+      Ticket Desk shows your Jira Cloud tickets in a native GNOME window. Lists and
+      tickets appear instantly from a local cache and are refreshed in the background,
+      so it stays usable offline.
+    </p>
+    <ul>
+      <li>Your tickets, recently viewed tickets and your saved Jira filters</li>
+      <li>Search by text, project or key prefix; filter by status category; sort</li>
+      <li>Rich descriptions and comments, including tables with merged cells</li>
+      <li>Image attachments with thumbnails and a full-size viewer</li>
+      <li>Comment and change status, including transitions that need field values</li>
+    </ul>
+    <p>Not affiliated with or endorsed by Atlassian. Jira is a trademark of Atlassian.</p>
+  </description>
+  <launchable type="desktop-id">@APP_ID@.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <releases>
+    <release version="0.10.0" date="2026-11-12">
+      <description>
+        <p>Change the assignee and link tickets (relates, blocks, duplicates, parent and child) from the ticket view.</p>
+      </description>
+    </release>
+    <release version="0.9.0" date="2026-11-12">
+      <description>
+        <p>A Firefox extension opens Jira ticket links clicked in Firefox and Firefox web apps in Ticket Desk.</p>
+      </description>
+    </release>
+    <release version="0.8.0" date="2026-11-12">
+      <description>
+        <p>Notifications for mentions and updates to your tickets, with a history under the bell and optional desktop notifications, and a live view that keeps the list up to date.</p>
+      </description>
+    </release>
+    <release version="0.7.0" date="2026-11-12">
+      <description>
+        <p>Mention people with @ in descriptions and comments, paste images from the clipboard, drop files from the file manager, and a new ticket dialog that fits small windows.</p>
+      </description>
+    </release>
+    <release version="0.6.0" date="2026-11-12">
+      <description>
+        <p>Images in descriptions and comments (paste, drop or insert; resizable), file attachments for new tickets, comments and existing tickets, and formatted comments.</p>
+      </description>
+    </release>
+    <release version="0.5.0" date="2026-11-12">
+      <description>
+        <p>Create tickets, and edit descriptions in a document editor with tables (including merged cells), lists, task lists, code blocks, quotes and panels.</p>
+      </description>
+    </release>
+    <release version="0.4.0" date="2026-11-11">
+      <description>
+        <p>Swimlanes on boards with the ticket in a panel underneath, bookmarks for projects and boards, back and forward that return exactly where you were, a compact filter bar, and ticket details collapsed under the title.</p>
+      </description>
+    </release>
+    <release version="0.3.0" date="2026-11-11">
+      <description>
+        <p>Lists per project, filters and sorting like the top bar extension, child and linked tickets with drill-down, and a choice of which ticket fields are shown.</p>
+      </description>
+    </release>
+    <release version="0.2.0" date="2026-11-11">
+      <description>
+        <p>Boards with drag and drop, resizable panes, and images shown inside descriptions and comments.</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-11-11">
+      <description>
+        <p>First version: ticket lists, ticket view, comments and status changes.</p>
+      </description>
+    </release>
+  </releases>
+</component>

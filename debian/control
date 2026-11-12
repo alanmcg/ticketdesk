@@ -1,0 +1,30 @@
+Source: ticketdesk
+Section: misc
+Priority: optional
+Maintainer: Your Name <you@example.com>
+Build-Depends: debhelper-compat (= 13),
+               meson (>= 0.62),
+               python3:any,
+               desktop-file-utils,
+               appstream
+Standards-Version: 4.7.0
+Homepage: https://github.com/USER/ticketdesk
+Rules-Requires-Root: no
+
+Package: ticketdesk
+Architecture: all
+Depends: ${misc:Depends},
+         python3 (>= 3.11),
+         python3-gi,
+         gir1.2-gtk-4.0 (>= 4.14),
+         gir1.2-adw-1 (>= 1.6),
+         gir1.2-secret-1,
+         gir1.2-webkit-6.0
+Recommends: gnome-keyring
+Description: Fast GNOME client for Jira Cloud
+ Ticket Desk shows your Jira Cloud tickets in a native GNOME window. Lists and
+ tickets appear instantly from a local cache and refresh in the background, so
+ it also works offline. It renders rich descriptions and comments (including
+ tables), shows image attachments, and lets you comment and change status.
+ .
+ Not affiliated with or endorsed by Atlassian.

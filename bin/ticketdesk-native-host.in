@@ -1,0 +1,10 @@
+#!@PYTHON@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Browser helper (native messaging host) for the Ticket Desk Links extension.
+import sys
+
+sys.path.insert(1, '@pkgdatadir@')
+
+from ticketdesk.nativehost import main  # noqa: E402
+
+sys.exit(main())

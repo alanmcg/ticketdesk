@@ -1,0 +1,143 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Uses libadwaita 1.6 CSS variables, so light, dark and accent colours follow the desktop. */
+
+.issue-key { font-weight: bold; font-size: 0.92em; }
+
+.tag {
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-size: 0.82em;
+  font-weight: bold;
+}
+.tag.todo { background-color: alpha(currentColor, 0.1); }
+.tag.progress { background-color: alpha(var(--accent-bg-color), 0.18); color: var(--accent-color); }
+.tag.done { background-color: alpha(var(--success-bg-color), 0.2); color: var(--success-color); }
+
+menubutton.status-button > button { font-weight: bold; }
+menubutton.status-button.progress > button { background-color: alpha(var(--accent-bg-color), 0.18); color: var(--accent-color); }
+menubutton.status-button.done > button { background-color: alpha(var(--success-bg-color), 0.2); color: var(--success-color); }
+
+.adf-card { padding: 14px 16px; }
+.composer textview { background: none; }
+
+.adf-quote {
+  padding-left: 12px;
+  border-left: 3px solid alpha(currentColor, 0.2);
+}
+
+.adf-panel { padding: 10px 12px; border-radius: 9px; }
+.adf-panel.info, .adf-panel.custom { background-color: alpha(var(--accent-bg-color), 0.12); }
+.adf-panel.info .panel-icon, .adf-panel.custom .panel-icon { color: var(--accent-color); }
+.adf-panel.note { background-color: alpha(#9141ac, 0.12); }
+.adf-panel.note .panel-icon { color: #9141ac; }
+.adf-panel.success, .adf-panel.tip { background-color: alpha(var(--success-bg-color), 0.14); }
+.adf-panel.success .panel-icon, .adf-panel.tip .panel-icon { color: var(--success-color); }
+.adf-panel.warning { background-color: alpha(var(--warning-bg-color), 0.18); }
+.adf-panel.warning .panel-icon { color: var(--warning-color); }
+.adf-panel.error { background-color: alpha(var(--error-bg-color), 0.12); }
+.adf-panel.error .panel-icon { color: var(--error-color); }
+
+.adf-code {
+  border-radius: 9px;
+  box-shadow: 0 0 0 1px var(--border-color);
+  background-color: var(--view-bg-color);
+}
+.adf-code-head {
+  padding: 2px 4px 2px 12px;
+  background-color: alpha(currentColor, 0.05);
+  border-radius: 9px 9px 0 0;
+}
+.adf-code-text { padding: 10px 12px; }
+
+.adf-table { border-radius: 9px; box-shadow: 0 0 0 1px var(--border-color); }
+.adf-cell {
+  padding: 7px 10px;
+  min-width: 80px;
+  box-shadow: inset -1px -1px var(--border-color);
+}
+.adf-cell.header { background-color: alpha(currentColor, 0.06); font-weight: bold; }
+
+.adf-placeholder {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background-color: alpha(currentColor, 0.06);
+}
+
+.thumb { border-radius: 9px; }
+.thumb-button { padding: 4px; }
+
+/* Panes: the same colours libadwaita gives a triple-pane layout of nested split views. */
+.td-sidebar { background-color: var(--sidebar-bg-color); color: var(--sidebar-fg-color); }
+.td-sidebar:backdrop { background-color: var(--sidebar-backdrop-color); }
+.td-middle { background-color: var(--secondary-sidebar-bg-color); color: var(--secondary-sidebar-fg-color); }
+.td-middle:backdrop { background-color: var(--secondary-sidebar-backdrop-color); }
+
+/* Images and files embedded in descriptions and comments */
+.inline-image-button { padding: 0; border-radius: 9px; }
+.inline-image { border-radius: 9px; }
+.inline-image-loading { background-color: alpha(currentColor, 0.06); border-radius: 9px; }
+
+/* Boards */
+.board-column {
+  background-color: alpha(currentColor, 0.04);
+  border-radius: 12px;
+}
+.board-column.drop-target { box-shadow: inset 0 0 0 2px alpha(var(--accent-bg-color), 0.7); }
+.board-list { background: none; }
+.board-list > row.board-card-row { padding: 4px 8px; background: none; }
+.board-list > row.board-card-row:focus-visible { outline-offset: -2px; }
+.board-card { padding: 9px 11px; }
+.board-list > row.selected-card > .board-card { box-shadow: 0 0 0 2px var(--accent-bg-color); }
+.board-list > row.dragging { opacity: 0.35; }
+.board-list > row.pending { opacity: 0.55; }
+.board-list > row.drop-before { box-shadow: inset 0 3px var(--accent-bg-color); }
+.board-list > row.drop-after { box-shadow: inset 0 -3px var(--accent-bg-color); }
+
+/* The open ticket stays clearly highlighted in the list */
+listview.issue-list > row:selected { background-color: alpha(var(--accent-bg-color), 0.22); }
+listview.issue-list > row:selected:hover { background-color: alpha(var(--accent-bg-color), 0.28); }
+listview.issue-list > row:selected .issue-key { color: var(--accent-color); }
+
+/* Boards outside the configured projects, nested under "All" */
+.navigation-sidebar.nested > row { margin-left: 18px; }
+
+/* Filter bar above the list: one compact row that wraps when narrow */
+.filter-bar button, .filter-bar menubutton > button { min-height: 26px; padding: 2px 10px; }
+.filter-bar flowboxchild { padding: 0; }
+
+/* Details under the ticket title */
+.details-area { padding: 2px 0; }
+.detail-tile { padding: 4px 6px; margin: -4px -6px; }
+
+/* Related tickets */
+.breadcrumb button { padding: 2px 6px; min-height: 24px; }
+.related-row { padding: 6px 10px; }
+.related-row .issue-key { min-width: 0; }
+.subsection { margin-top: 6px; }
+
+/* Bookmarks: the star shows on hover, and always once starred */
+.bookmark-star { opacity: 0; min-width: 24px; min-height: 24px; padding: 0; color: #e5a50a; }
+.navigation-sidebar > row:hover .bookmark-star,
+.navigation-sidebar > row:focus-within .bookmark-star,
+.bookmark-star.active { opacity: 1; }
+
+/* Swimlanes */
+.board-lane { padding-top: 4px; }
+.lane-toggle { padding: 2px 8px; }
+.board-column-head { padding-bottom: 6px; }
+
+/* Document editor */
+.rich-editor { padding: 0; }
+.rich-editor > .editor-toolbar { padding: 4px 6px; }
+.rich-editor > revealer > .table-toolbar { padding: 2px 6px 4px; border-top: 1px solid alpha(currentColor, 0.08); }
+.editor-toolbar button, .editor-toolbar menubutton > button, .editor-toolbar dropdown > button { min-height: 28px; min-width: 28px; padding: 2px 6px; }
+.editor-toolbar separator { margin: 6px 4px; }
+
+/* New ticket */
+entry.summary-entry { font-size: 1.35em; font-weight: 600; min-height: 46px; }
+
+/* Notifications: a small dot on the bell while something is unread */
+.notify-dot { background-color: var(--accent-bg-color); border-radius: 50%; min-width: 8px; min-height: 8px;
+              margin: 1px 0 0 0; box-shadow: 0 0 0 2px var(--headerbar-bg-color); }
+.notification-list { background: none; }
+.notification-list > row { border-radius: 8px; }
